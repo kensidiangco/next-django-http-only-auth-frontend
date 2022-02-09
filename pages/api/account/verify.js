@@ -1,0 +1,48 @@
+import Cookie from 'cookie';
+import { API_URL } from '../../../config';
+
+
+export default async (req, res) => {
+  if (req.method === 'GET') {
+    const cookies = Cookie.parse(req.headers.cookie ?? '');
+    const access = cookies.access ?? false;
+
+    if (access === false){
+      return res.status(401).json({
+        error: 'User forbidden from making request'
+      })
+    }
+
+    const body = JSON.stringify({
+      token: access
+    });
+
+    try {
+      const apiRes = await fetch(`${API_URL}/api/token/verify/`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-type': 'application/json',
+        },
+        body: body
+      });
+
+      if (apiRes.status === 200) {
+        return res.status(200).json({
+          success: 'Authenticated successfully'
+        });
+      } else {
+        return res.status(apiRes.status).json({
+          error: 'Failed to authenticate'
+        })
+      }
+    } catch (error) {
+      return res.status(apiRes.status).json({
+        error: 'Something went wrong when trying to authenticate'
+      })
+    }
+  } else {
+    res.setHeaders('Allow', ['GET']);
+    return res.status(405).json({ error: `Method ${req.method} not allowed`})
+  }
+};
